@@ -772,29 +772,20 @@ export function App() {
   useEffect(() => {
     const viewport = window.visualViewport;
     let focusFrame = 0;
-    let expandedHeight = Math.max(
-      window.innerHeight,
-      Math.round(viewport?.height || 0),
-      deviceAvailable ? Math.round(window.screen.height || 0) : 0,
-    );
+    let expandedHeight = window.innerHeight;
+    let viewportWidth = window.innerWidth;
     const updateViewport = () => {
-      const visibleHeight = Math.round(viewport?.height || window.innerHeight);
-      const visibleTop = Math.round(viewport?.offsetTop || 0);
-      const obscuredHeight = Math.max(
-        0,
-        window.innerHeight -
-          visibleHeight -
-          visibleTop,
-      );
+      const zoomed = Math.abs((viewport?.scale || 1) - 1) > 0.01;
+      const visibleHeight = Math.round(zoomed ? window.innerHeight : viewport?.height || window.innerHeight);
+      const visibleTop = zoomed ? 0 : Math.max(0, Math.min(Math.round(viewport?.offsetTop || 0), window.innerHeight - visibleHeight));
       const composerFocused =
         document.activeElement instanceof HTMLElement &&
         Boolean(document.activeElement.closest(".composer-zone"));
-      if (!composerFocused)
-        expandedHeight = Math.max(expandedHeight, visibleHeight);
-      const referenceHeight = Math.max(
-        expandedHeight,
-        deviceAvailable ? Math.round(window.screen.height || 0) : 0,
-      );
+      if (!composerFocused || viewportWidth !== window.innerWidth) {
+        expandedHeight = window.innerHeight;
+        viewportWidth = window.innerWidth;
+      }
+      const obscuredHeight = Math.max(window.innerHeight, expandedHeight) - visibleHeight;
       document.documentElement.style.setProperty(
         "--app-viewport-height",
         `${visibleHeight}px`,
@@ -804,8 +795,7 @@ export function App() {
         `${visibleTop}px`,
       );
       setKeyboardOpen(
-        composerFocused &&
-          (obscuredHeight > 96 || referenceHeight - visibleHeight > 96),
+        composerFocused && !zoomed && obscuredHeight > 96,
       );
     };
     const updateAfterFocus = () => {

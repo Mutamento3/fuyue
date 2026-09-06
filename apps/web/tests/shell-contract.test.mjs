@@ -106,7 +106,8 @@ test("chat owns its scrolling while composer and bottom navigation stay in the v
   assert.match(styles, /\.bottom-nav \{ position: fixed;/);
   assert.match(source, /window\.visualViewport/);
   assert.match(source, /--app-viewport-top/);
-  assert.match(source, /deviceAvailable \? Math\.round\(window\.screen\.height/);
+  assert.match(source, /let expandedHeight = window\.innerHeight/);
+  assert.match(styles, /\.app-shell\[data-view="chat"\] \.topbar \{ position: absolute; top: 0; \}/);
   assert.match(source, /data-keyboard-open=\{keyboardOpen/);
   assert.match(styles, /\.app-shell\[data-keyboard-open="true"\] \.bottom-nav/);
   assert.doesNotMatch(styles, /data-keyboard-open="true"[^}]*\.topbar[^}]*display:\s*none/);

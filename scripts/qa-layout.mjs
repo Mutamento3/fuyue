@@ -24,6 +24,10 @@ try {
   await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector(".bottom-nav")).opacity) < 0.01);
   composerBox = await composer.boundingBox();
   assert.ok(composerBox && composerBox.y + composerBox.height <= 480);
+  const headerBox = await page.locator(".topbar").boundingBox();
+  const controlsBox = await page.locator(".chat-control-strip").boundingBox();
+  assert.ok(headerBox && Math.abs(headerBox.y) < 1, "identity header stays at the visible top while typing");
+  assert.ok(controlsBox && controlsBox.y >= headerBox.y + headerBox.height, "model and reasoning stay below identity");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByLabel("聊天原文").blur();
@@ -33,9 +37,10 @@ try {
   assert.equal(await page.locator(".topbar").isVisible(), true);
   assert.equal(await nav.getAttribute("aria-hidden"), null);
   assert.equal(await nav.evaluate((element) => getComputedStyle(element).position), "fixed");
-  assert.equal(await page.locator(".topbar").evaluate((element) => getComputedStyle(element).position), "fixed");
+  assert.equal(await page.locator(".topbar").evaluate((element) => getComputedStyle(element).position), "absolute");
+  assert.equal(await page.locator(".app-shell").evaluate((element) => getComputedStyle(element).position), "fixed");
   await page.screenshot({ path: process.env.FUYUE_QA_LAYOUT_SCREENSHOT || "/tmp/fuyue-layout-desktop.png", fullPage: true });
-  process.stdout.write("✓ 390×844 输入区不与底栏重叠\n✓ 390×480 键盘态顶底栏退出，输入区留在可见区\n✓ 1280×900 顶栏与五栏均为 fixed\n");
+  process.stdout.write("✓ 390×844 输入区不与底栏重叠\n✓ 390×480 键盘态保留头像与模型栏，仅底栏退出\n✓ 1280×900 顶栏与输入区共用固定聊天视口\n");
   await context.close();
 } finally {
   await browser.close();
