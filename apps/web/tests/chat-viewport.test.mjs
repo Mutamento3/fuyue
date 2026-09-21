@@ -7,10 +7,11 @@ const effect = source.match(/useEffect\(\(\) => \{\n(\s+const viewport = window\
 assert.ok(effect, "test the mounted viewport effect, not a separate implementation");
 
 function setup({ height = 844, width = 390, visual = true } = {}) {
-  const window = Object.assign(new EventTarget(), { innerHeight: height, innerWidth: width, screen: { height: 844 } });
+  const window = Object.assign(new EventTarget(), { innerHeight: height, innerWidth: width, screen: { height: 844 }, scrollX: 0, scrollY: 0 });
+  window.scrollTo = (x, y) => { window.scrollX = x; window.scrollY = y; };
   window.visualViewport = visual ? Object.assign(new EventTarget(), { height, offsetTop: 0, scale: 1 }) : undefined;
   const properties = new Map();
-  const document = Object.assign(new EventTarget(), { activeElement: null, documentElement: { style: {
+  const document = Object.assign(new EventTarget(), { activeElement: null, scrollingElement: { scrollTop: 0 }, body: { scrollTop: 0 }, documentElement: { style: {
     setProperty: (key, value) => properties.set(key, value), removeProperty: (key) => properties.delete(key),
   } } });
   class Element { closest(selector) { return selector === ".composer-zone"; } }
@@ -23,6 +24,7 @@ function setup({ height = 844, width = 390, visual = true } = {}) {
   const flush = () => { for (const [id, callback] of frames) { frames.delete(id); callback(); } };
   return { window, properties, cleanup, get open() { return keyboardOpen; },
     value: (ending) => [...properties].find(([key]) => key.endsWith(ending))?.[1],
+    pageScroll(value) { window.scrollY = value; document.scrollingElement.scrollTop = value; document.body.scrollTop = value; },
     focus(value = true) { document.activeElement = value ? new Element() : null; document.dispatchEvent(new Event(value ? "focusin" : "focusout")); flush(); },
     resize({ innerHeight, innerWidth, ...viewport }) {
       if (innerHeight !== undefined) window.innerHeight = innerHeight;
@@ -37,6 +39,10 @@ test("focused hardware keyboard and small landscape do not imply a software keyb
   for (const height of [844, 480]) {
     const state = setup({ height }); state.focus(); assert.equal(state.open, false); state.cleanup();
   }
+});
+test("composer focus cancels Safari page panning without touching the message list", () => {
+  const state = setup(); state.pageScroll(180); state.focus();
+  assert.equal(state.window.scrollY, 0); assert.equal(state.window.scrollX, 0); state.cleanup();
 });
 test("panned visual viewport preserves its top without subtracting the pan from keyboard detection", () => {
   const state = setup(); state.focus(); state.resize({ height: 560, offsetTop: 190 });

@@ -775,7 +775,15 @@ export function App() {
     let focusFrame = 0;
     let expandedHeight = window.innerHeight;
     let viewportWidth = window.innerWidth;
+    const pinChatPage = () => {
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement) || !active.closest(".composer-zone")) return;
+      if (document.scrollingElement?.scrollTop) document.scrollingElement.scrollTop = 0;
+      if (document.body.scrollTop) document.body.scrollTop = 0;
+      if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+    };
     const updateViewport = () => {
+      pinChatPage();
       const zoomed = Math.abs((viewport?.scale || 1) - 1) > 0.01;
       const visibleHeight = Math.round(zoomed ? window.innerHeight : viewport?.height || window.innerHeight);
       const visibleTop = zoomed ? 0 : Math.max(0, Math.min(Math.round(viewport?.offsetTop || 0), window.innerHeight - visibleHeight));
@@ -800,8 +808,16 @@ export function App() {
       );
     };
     const updateAfterFocus = () => {
+      pinChatPage();
       window.cancelAnimationFrame(focusFrame);
-      focusFrame = window.requestAnimationFrame(updateViewport);
+      focusFrame = window.requestAnimationFrame(() => {
+        pinChatPage();
+        updateViewport();
+        focusFrame = window.requestAnimationFrame(() => {
+          pinChatPage();
+          updateViewport();
+        });
+      });
     };
     updateViewport();
     viewport?.addEventListener("resize", updateViewport);
